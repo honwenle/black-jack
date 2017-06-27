@@ -7,6 +7,7 @@ test_group = bot.groups().search('测试群')[0]
 
 play_list = []
 gameStep = -1
+canLoop = False
 def deal(msg):
     global gameStep
     msg.reply('开始发牌')
@@ -32,7 +33,7 @@ def deal(msg):
 
 @bot.register(Group, TEXT)
 def recive_group_message(msg):
-    global gameStep, play_list
+    global gameStep, play_list, canLoop
     try:
         print(msg.chat.name + ' > ' + msg.member.name + ' : ' + msg.text)
     except UnicodeEncodeError:
@@ -46,9 +47,12 @@ def recive_group_message(msg):
             choice = msg.text == '1' or msg.text == '0'
             if choice:
                 if msg.text == '1':
+                    canLoop = True
                     open_num = str(random.randint(1,10))
                     p.open.append(open_num)
                     if sum([int(num) for num in p.open]) + int(p.dark) > 21:
+                        for item in play_list:
+                            msg.reply(item.name + '的牌为：' + '，'.join(item.open) + '，' + item.dark)
                         msg.reply(p.name + ' 爆掉了')
                         gameStep = -1
                         play_list = []
@@ -61,13 +65,21 @@ def recive_group_message(msg):
                         next_p = item
                         break
                 else:
-                    gameStep = 0
-                    next_p = play_list[0]
-                msg.reply(p.name + '的明牌为：' + ' , '.join(p.open))
+                    if canLoop:
+                        gameStep = 0
+                        canLoop = False
+                        next_p = play_list[0]
+                    else:
+                        for item in play_list:
+                            msg.reply(item.name + '的牌为：' + '，'.join(item.open) + '，' + item.dark)
+                        gameStep = -1
+                        play_list = []
+                        return
+                msg.reply(p.name + '的明牌为：' + ' ，'.join(p.open))
                 msg.reply(next_p.name + '是否要牌')
             else:
                 msg.reply('回复1要牌，回复0不要牌')
         else:
-            msg.reply('@' + msg.member.name + ',还没轮到你，别插嘴')
+            msg.reply('@' + msg.member.name + '，还没轮到你，别插嘴')
 
 embed()
